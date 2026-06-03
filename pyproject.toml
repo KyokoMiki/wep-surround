@@ -1,0 +1,110 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wep-surround"
+version = "1.6.1"
+description = "一键环绕声 — 立体声 → 5.1/7.1 环绕声 AI 上混工作流"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+authors = [
+    {name = "WEP Developer"}
+]
+keywords = ["audio", "surround", "5.1", "7.1", "demucs", "upmix", "AI", "music", "separation"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: End Users/Desktop",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Multimedia :: Sound/Audio",
+]
+
+dependencies = [
+    # Core ML / Audio
+    "demucs>=4.0.0",
+    "librosa>=0.9.2",
+    "soundfile>=0.12.1",
+    "pydub>=0.25.1",
+    "soxr>=0.3.7",
+    # Web UI
+    "gradio>=4.38.1",
+    "fastapi>=0.111.0",
+    # Utilities
+    "numpy>=1.21.0",
+    "scipy>=1.7.0",
+    "tqdm>=4.62.0",
+    "colorama>=0.4.4",
+    "psutil>=5.9.0",
+    "omegaconf>=2.2.3",
+]
+
+[project.optional-dependencies]
+# NVIDIA GPU 支持
+cuda = [
+    "torch>=2.0.1",
+    "torchaudio>=2.0.1",
+]
+# AMD ROCm GPU 支持
+rocm = [
+    "torch>=2.0.1",
+    "torchaudio>=2.0.1",
+]
+# 完整版（含 MSST-WebUI 所有依赖）
+full = [
+    "torch>=2.0.1",
+    "torchaudio>=2.0.1",
+    "torchvision>=0.15.0",
+    "accelerate>=0.33.0",
+    "asteroid>=0.7.0",
+    "lightning>=2.4.0",
+    "transformers>=4.53.0",
+    "segmentation-models-pytorch>=0.3.3",
+    "torchseg>=0.0.1a1",
+    "torch-log-wmse>=0.2.9",
+    "sageattention>=1.0.6",
+    "neuraloperator>=2.0.0",
+    "safetensors>=0.7.0",
+    "audiomentations>=0.24.0",
+    "auraloss>=0.4.0",
+    "pedalboard>=0.8.1",
+    "samplerate>=0.2.4",
+    "torch-audiomentations>=0.11.1",
+    "einops>=0.6.1",
+    "rotary-embedding-torch>=0.3.5",
+    "beartype>=0.14.1",
+    "ml-collections",
+    "mido>=1.3.2",
+    "protobuf>=3.20.3",
+]
+
+[project.urls]
+Homepage = "https://gitcode.com/Mark007700/wep-surround"
+Documentation = "https://gitcode.com/Mark007700/wep-surround#readme"
+Repository = "https://gitcode.com/Mark007700/wep-surround"
+Issues = "https://gitcode.com/Mark007700/wep-surround/issues"
+Changelog = "https://gitcode.com/Mark007700/wep-surround/blob/main/CHANGELOG.md"
+
+[project.scripts]
+wep-webui = "wep_webui:main"
+wep-cli = "oneclick_WEP:main"
+
+[tool.setuptools]
+include-package-data = true
+py-modules = [
+    "wep_webui",
+    "oneclick_WEP",
+    "simple_upmix_51",
+    "oneclick_51",
+    "oneclick_surround",
+    "SurroundUpmix",
+]
+
+[tool.setuptools.packages.find]
+include = ["MSST-WebUI*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.m3u", "*.yaml", "*.yml", "*.md"]

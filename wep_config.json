@@ -1,0 +1,12 @@
+{
+  "model": "htdemucs",
+  "preset": "Music",
+  "sample_rate": "44100",
+  "bit_depth": "16",
+  "output_format": "wav",
+  "channel_config": "5.1",
+  "aac_bitrate": "512k",
+  "precision": "fp16",
+  "lfe_freq": "80",
+  "loudnorm": "-14"
+}

@@ -1,0 +1,55 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# 虚拟环境
+venv/
+vep_venv/
+.venv/
+env/
+MSST-WebUI/venv/
+
+# 临时/输出文件
+output/
+separated/
+_wep_tmp/
+
+# IDE 配置
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# 日志
+*.log
+
+# 工作记录
+.workbuddy/
+.dumate/
+
+# 大文件（模型权重、EXE、dll）
+*.pth
+*.pt
+*.onnx
+*.dll
+*.exe
+pretrain/
+Center_Cut_GUI/
+bin/
+tools/SOME_weights/
+tools/webUI_for_clouds/*.whl
+
+# 生成文件
+*.m3u
+*.pkf
+configs_backup/
+data_backup/
