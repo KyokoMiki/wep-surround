@@ -308,7 +308,7 @@ def measure_rms(filepath):
     try:
         r = subprocess.run(
             ["ffmpeg", "-i", filepath, "-af", "volumedetect", "-f", "null", "-"],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, encoding='utf-8', timeout=30
         )
         for line in (r.stderr + r.stdout).split("\n"):
             if "mean_volume:" in line:
@@ -335,13 +335,13 @@ def measure_width(filepath):
         subprocess.run(
             ["ffmpeg", "-y", "-i", filepath, "-af", "pan=mono|c0=0.5*c0+0.5*c1",
              "-ar", "16000", "-c:a", "pcm_s16le", str(mid_file)],
-            capture_output=True, timeout=15
+            capture_output=True, encoding='utf-8', timeout=15
         )
         # Side = L-R
         subprocess.run(
             ["ffmpeg", "-y", "-i", filepath, "-af", "pan=mono|c0=0.5*c0-0.5*c1",
              "-ar", "16000", "-c:a", "pcm_s16le", str(side_file)],
-            capture_output=True, timeout=15
+            capture_output=True, encoding='utf-8', timeout=15
         )
 
         mid_rms = measure_rms(str(mid_file))
@@ -360,7 +360,7 @@ def measure_width(filepath):
 #  Stage 3: 5.1 环绕声上混
 # ════════════════════════════════════════════════════════════════════════════
 
-def stage_upmix(stems_dir, output_file, preset, layout, analysis):
+def stage_upmix(stems_dir, output_file, preset, layout, analysis, output_format="flac", sample_rate=48000):
     """Stage 3: 将 4 stems 上混为 5.1/7.1 环绕声"""
     log.stage_start(3, 3, f"环绕声上混 — {preset} → {layout}")
 
@@ -450,7 +450,7 @@ def stage_upmix(stems_dir, output_file, preset, layout, analysis):
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         merge_51(fl_temp, fr_temp, fc_temp, lfe_temp, ls_temp, rs_temp,
-                str(output_path), layout)
+                str(output_path), layout, output_format, sample_rate)
 
         # ── 结果 ────────────────────────────────────────────
         elapsed = time.time() - t0
@@ -540,8 +540,16 @@ def create_surround_channels(stems, ls_file, rs_file, delay_l, delay_r,
     ], "Surround Right")
 
 
-def merge_51(fl, fr, fc, lfe, ls, rs, output_file, layout):
+def merge_51(fl, fr, fc, lfe, ls, rs, output_file, layout, output_format="flac", sample_rate=48000):
     """合并声道 + EBU R128 响度归一化"""
+    # 确定编码参数
+    if output_format == "dts":
+        codec = ["-c:a", "dca", "-b:a", "1536k", "-strict", "-2"]
+    elif output_format == "wav":
+        codec = ["-c:a", "pcm_s24le"]
+    else:  # flac
+        codec = ["-c:a", "flac", "-compression_level", "8"]
+
     # 5.1: FL FR FC LFE Ls Rs
     run_ffmpeg([
         "-i", str(fl), "-i", str(fr), "-i", str(fc),
@@ -549,10 +557,10 @@ def merge_51(fl, fr, fc, lfe, ls, rs, output_file, layout):
         "-filter_complex",
         "[0:a][1:a][2:a][3:a][4:a][5:a]amerge=inputs=6,loudnorm=I=-14:TP=-1:LRA=11[aout]",
         "-map", "[aout]",
-        "-c:a", "flac",
-        "-compression_level", "8",
+        "-ar", str(sample_rate)
+    ] + codec + [
         output_file
-    ], "Merge 5.1 + EBU R128")
+    ], f"Merge 5.1 + EBU R128 → {output_format.upper()} @ {sample_rate}Hz")
 
 
 def run_ffmpeg(args, description=""):
@@ -569,7 +577,7 @@ def run_ffmpeg(args, description=""):
 #  WEP 主流水线
 # ════════════════════════════════════════════════════════════════════════════
 
-def run_pipeline(input_file, preset, layout, output_file, skip_separate, stems_from):
+def run_pipeline(input_file, preset, layout, output_file, skip_separate, stems_from, output_format="flac", sample_rate=48000):
     """执行完整 WEP 流水线"""
     # ── 环境检测 ──
     env = detect_environment()
@@ -577,8 +585,10 @@ def run_pipeline(input_file, preset, layout, output_file, skip_separate, stems_f
 
     # ── Stage 1: 音源分离 ──
     if skip_separate and stems_from:
+        log.stage_start(1, 3, "音源分离 (跳过)")
         stems_dir = stems_from
         log.info("SKIP", f"跳过分离，直接使用 stems: {stems_dir}")
+        log.stage_done(1, ok=True)
     else:
         stems_dir = stage_separate(input_file, env)
 
@@ -590,12 +600,13 @@ def run_pipeline(input_file, preset, layout, output_file, skip_separate, stems_f
         track_name = Path(stems_dir).name
         output_dir = Path.home() / "Music" / f"Final_{layout}"
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_file = str(output_dir / f"{track_name}.{layout}.flac")
+        ext = ".dts" if output_format == "dts" else f".{output_format}"
+        output_file = str(output_dir / f"{track_name}.{layout}{ext}")
 
-    log.info("CONFIG", f"布局: {layout} | 预设: {preset} | 输出: {output_file}")
+    log.info("CONFIG", f"布局: {layout} | 预设: {preset} | 格式: {output_format} | 采样率: {sample_rate} Hz | 输出: {output_file}")
 
     # ── Stage 3: 上混 ──
-    final_path = stage_upmix(stems_dir, output_file, preset, layout, analysis)
+    final_path = stage_upmix(stems_dir, output_file, preset, layout, analysis, output_format, sample_rate)
 
     # ── 完成 ──
     total = log.total_elapsed()
@@ -632,12 +643,16 @@ def main():
   PLIIx  - Dolby Pro Logic IIx 近似，极宽扩散环绕 (通用)
         """
     )
-    parser.add_argument("input_file", help="输入音频文件 (MP3/WAV/FLAC)，支持拖放")
+    parser.add_argument("input_file", help="输入音频文件或目录 (MP3/WAV/FLAC/M4A)，支持拖放")
     parser.add_argument("-p", "--preset", choices=["Music", "Movie", "Anime", "PLIIx"],
                        default=DEFAULT_PRESET, help=f"处理预设 (默认: {DEFAULT_PRESET})")
     parser.add_argument("--layout", choices=["5.1", "7.1"],
                        default=DEFAULT_LAYOUT, help=f"输出声道布局 (默认: {DEFAULT_LAYOUT})")
-    parser.add_argument("-o", "--output", help="输出文件路径 (默认: ~/Music/Final_5.1/<曲名>.5.1.flac)")
+    parser.add_argument("-o", "--output", help="输出文件路径或目录 (默认: 原目录)")
+    parser.add_argument("-f", "--format", choices=["flac", "wav", "dts"],
+                       default="flac", help="输出格式 (默认: flac)")
+    parser.add_argument("-sr", "--sample-rate", type=int, choices=[44100, 48000, 96000],
+                       default=48000, help="输出采样率 (默认: 48000)")
     parser.add_argument("--skip-separate", action="store_true",
                        help="跳过 AI 分离步骤 (直接使用已有 stems)")
     parser.add_argument("--stems-from",
@@ -645,29 +660,118 @@ def main():
 
     args = parser.parse_args()
 
-    # 检查输入文件
+    # 检查输入路径
     input_path = Path(args.input_file).resolve()
-    if not args.skip_separate and not input_path.exists():
-        print(f"\n❌ 文件不存在: {input_path}")
-        print("   用法: python oneclick_WEP.py \"音频文件.mp3\"")
+    if not input_path.exists():
+        print(f"\n❌ 路径不存在: {input_path}")
+        print("   用法: python oneclick_WEP.py \"音频文件或目录\"")
         sys.exit(1)
 
-    # 执行流水线
-    try:
-        run_pipeline(
-            input_file=str(input_path),
-            preset=args.preset,
-            layout=args.layout,
-            output_file=args.output,
-            skip_separate=args.skip_separate,
-            stems_from=args.stems_from,
-        )
-    except KeyboardInterrupt:
-        print("\n\n⚠️  用户中断")
-        sys.exit(130)
-    except Exception as e:
-        print(f"\n❌ 流水线执行失败: {e}")
-        sys.exit(1)
+    # 判断是文件还是目录
+    if input_path.is_dir():
+        # 批量处理目录
+        audio_exts = [".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg"]
+        audio_files = []
+        for ext in audio_exts:
+            audio_files.extend(input_path.glob(f"*{ext}"))
+
+        if not audio_files:
+            print(f"\n❌ 目录中没有找到音频文件: {input_path}")
+            sys.exit(1)
+
+        audio_files = sorted(audio_files)
+        total = len(audio_files)
+        success = 0
+        failed = []
+
+        print(f"\n{'='*62}")
+        print(f"  📁 批量处理模式")
+        print(f"{'='*62}")
+        print(f"  目录: {input_path}")
+        print(f"  文件数: {total}")
+        print(f"  预设: {args.preset} | 布局: {args.layout} | 格式: {args.format}")
+        print(f"{'='*62}\n")
+
+        for i, audio_file in enumerate(audio_files, 1):
+            print(f"\n{'─'*62}")
+            print(f"  [{i}/{total}] {audio_file.name}")
+            print(f"{'─'*62}")
+
+            # 确定输出路径
+            if args.output:
+                output_dir = Path(args.output)
+                output_dir.mkdir(parents=True, exist_ok=True)
+            else:
+                output_dir = audio_file.parent
+
+            ext = ".dts" if args.format == "dts" else f".{args.format}"
+            output_file = output_dir / f"{audio_file.stem}{ext}"
+
+            try:
+                run_pipeline(
+                    input_file=str(audio_file),
+                    preset=args.preset,
+                    layout=args.layout,
+                    output_file=str(output_file),
+                    skip_separate=args.skip_separate,
+                    stems_from=args.stems_from,
+                    output_format=args.format,
+                    sample_rate=args.sample_rate,
+                )
+                success += 1
+            except KeyboardInterrupt:
+                print("\n\n⚠️  用户中断")
+                sys.exit(130)
+            except Exception as e:
+                import traceback
+                print(f"\n❌ 处理失败: {e}")
+                traceback.print_exc()
+                failed.append(audio_file.name)
+
+        # 批量处理完成总结
+        print(f"\n{'='*62}")
+        print(f"  🎉 批量处理完成")
+        print(f"{'='*62}")
+        print(f"  成功: {success}/{total}")
+        if failed:
+            print(f"  失败: {len(failed)}")
+            for name in failed:
+                print(f"    - {name}")
+        print(f"{'='*62}\n")
+
+    else:
+        # 单文件处理
+        if not args.skip_separate and not input_path.is_file():
+            print(f"\n❌ 文件不存在: {input_path}")
+            sys.exit(1)
+
+        # 确定输出路径
+        if args.output:
+            output_file = args.output
+        else:
+            ext = ".dts" if args.format == "dts" else f".{args.format}"
+            output_file = str(input_path.parent / f"{input_path.stem}{ext}")
+
+        # 执行流水线
+        try:
+            run_pipeline(
+                input_file=str(input_path),
+                preset=args.preset,
+                layout=args.layout,
+                output_file=output_file,
+                skip_separate=args.skip_separate,
+                stems_from=args.stems_from,
+                output_format=args.format,
+                sample_rate=args.sample_rate,
+            )
+        except KeyboardInterrupt:
+            print("\n\n⚠️  用户中断")
+            sys.exit(130)
+        except Exception as e:
+            import traceback
+            print(f"\n❌ 流水线执行失败: {e}")
+            traceback.print_exc()
+            sys.exit(1)
 
 
 if __name__ == "__main__":
