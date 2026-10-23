@@ -73,7 +73,7 @@ WEP Surround 是一个基于深度学习的环绕声上混工具，利用 Demucs
 - 根据显卡型号自动匹配对应 CUDA / ROCm / XPU 版 PyTorch
 - 自动选择最快的 pip 镜像源（PyPI/清华/阿里云/腾讯云）
 - 自动选择最快的模型下载源（hf-mirror/魔搭/HuggingFace）
-- 创建虚拟环境 `vep_venv`
+- 创建虚拟环境 `.venv`
 - 安装完整版所有依赖（demucs, gradio, librosa, MSST 模型等）
 - 预下载 Demucs AI 模型
 
@@ -288,7 +288,7 @@ run_pipeline(
 
 | 问题 | 原因 | 解决 |
 |------|------|------|
-| `ModuleNotFoundError: No module named 'demucs'` | 未激活虚拟环境 | 双击 `一键环绕声.bat`（自动激活），或手动 `call vep_venv\Scripts\activate.bat` |
+| `ModuleNotFoundError: No module named 'demucs'` | 未激活虚拟环境 | 双击 `一键环绕声.bat`（自动激活），或手动 `call .venv\Scripts\activate.bat` |
 | WebUI 启动后浏览器打不开 | 端口被占用或防火墙拦截 | 检查 http://127.0.0.1:7860 是否可访问；关闭防火墙或换端口 |
 | 分离后 WebUI 卡死/无响应 | Demucs 模型未下载完 | 首次使用会自动下载模型（~2GB），请耐心等待；检查网络连接 |
 | 编码阶段长时间无反馈 | 正常现象，ffmpeg 编码需要时间 | 查看日志中的 ETA 倒计时，不要在窗口中点击 |

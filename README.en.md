@@ -73,7 +73,7 @@ The installer automatically handles (pure Python, bypasses Device Guard security
 - Auto-match PyTorch version (CUDA / ROCm / XPU) based on GPU model
 - Auto-select fastest pip mirror (PyPI / Tsinghua / Aliyun / Tencent Cloud)
 - Auto-select fastest model download source (hf-mirror / ModelScope / HuggingFace)
-- Create virtual environment `vep_venv`
+- Create virtual environment `.venv`
 - Install full dependency stack (demucs, gradio, librosa, MSST models, etc.)
 - Pre-download Demucs AI models
 
@@ -288,7 +288,7 @@ Model: htdemucs_ft (trained with max segment=7.8s)
 
 | Issue | Cause | Solution |
 |-------|-------|----------|
-| `ModuleNotFoundError: No module named 'demucs'` | Virtual env not activated | Double-click `一键环绕声.bat` (auto-activates), or manually `call vep_venv\Scripts\activate.bat` |
+| `ModuleNotFoundError: No module named 'demucs'` | Virtual env not activated | Double-click `一键环绕声.bat` (auto-activates), or manually `call .venv\Scripts\activate.bat` |
 | WebUI starts but browser can't connect | Port conflict or firewall | Check http://127.0.0.1:7860; disable firewall or change port |
 | WebUI hangs after separation | Demucs model not downloaded | First run auto-downloads model (~2GB), wait; check network |
 | Encoding phase freezes | Normal, ffmpeg takes time | Watch ETA countdown in logs, don't click around |

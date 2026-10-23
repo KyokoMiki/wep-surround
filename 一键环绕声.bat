@@ -11,12 +11,12 @@ echo.
 
 cd /d "%~dp0"
 
-:: ── 自动激活 vep_venv 虚拟环境（如果存在）───
-if exist "vep_venv\Scripts\activate.bat" (
+:: ── 自动激活 .venv 虚拟环境（如果存在）───
+if exist ".venv\Scripts\activate.bat" (
     echo [OK] 检测到虚拟环境，正在激活...
-    call "vep_venv\Scripts\activate.bat"
+    call ".venv\Scripts\activate.bat"
 ) else (
-    echo [提示] 未检测到 vep_venv，将使用系统 Python
+    echo [提示] 未检测到 .venv，将使用系统 Python
     echo        如提示缺少依赖，请先运行 pip install .
 )
 

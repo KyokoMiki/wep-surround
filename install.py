@@ -16,7 +16,7 @@ from pathlib import Path
 #  配置
 # =========================================================================
 PROJECT_DIR = Path(__file__).parent.resolve()
-VENV_DIR = PROJECT_DIR / "vep_venv"
+VENV_DIR = PROJECT_DIR / ".venv"
 
 PIP_MIRRORS = {
     "pypi 官方": "https://pypi.org/simple/",
